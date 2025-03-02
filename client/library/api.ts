@@ -32,30 +32,58 @@ async function fetchAPI(url: string) {
 const api = {
   get: {
     medias: {
-      search: cache(async ({ query, page }: { query: string; page: number }) => {
-        const url = `${TMDB_API_URL}/3/search/multi?api_key=${TMDB_API_KEY}&language=en-US&query=${encodeURIComponent(
-          query
-        )}&page=${page}&include_adult=false`;
+      // search: cache(async ({ query, page }: { query: string; page: number }) => {
+      //   const url = `${TMDB_API_URL}/3/search/multi?api_key=${TMDB_API_KEY}&language=en-US&query=${encodeURIComponent(
+      //     query
+      //   )}&page=${page}&include_adult=false`;
 
+      //   const data = await fetchAPI(url);
+      //   if (!data || !Array.isArray(data.results)) return [];
+
+      //   return data.results
+      //     .filter((media: any) => media.poster_path && media.backdrop_path && media.overview)
+      //     .map((media: any) => ({
+      //       id: media.id,
+      //       title: media.title || media.name,
+      //       isForAdult: media.adult,
+      //       type: media.media_type === "movie" ? "movies" : "series",
+      //       image: {
+      //         poster: media.poster_path,
+      //         backdrop: media.backdrop_path,
+      //       },
+      //       overview: media.overview,
+      //       releasedAt: media.release_date || media.first_air_date,
+      //       language: { original: media.original_language },
+      //     })) as Media[];
+      // }),
+
+      search: cache(async ({ query, page = 1 }: { query: string; page: number }) => {
+        const url = `${API_BASE_URL}/media/search?query=${encodeURIComponent(query)}&page=${page}`;
         const data = await fetchAPI(url);
-        if (!data || !Array.isArray(data.results)) return [];
 
-        return data.results
-          .filter((media: any) => media.poster_path && media.backdrop_path && media.overview)
-          .map((media: any) => ({
-            id: media.id,
-            title: media.title || media.name,
-            isForAdult: media.adult,
-            type: media.media_type === "movie" ? "movies" : "series",
-            image: {
-              poster: media.poster_path,
-              backdrop: media.backdrop_path,
-            },
-            overview: media.overview,
-            releasedAt: media.release_date || media.first_air_date,
-            language: { original: media.original_language },
-          })) as Media[];
-      }),
+        console.log(`🔍 Fetching Search: ${url}`);
+
+        if (!data || !Array.isArray(data)) {
+            console.warn("⚠ API: Search returned null or invalid data.");
+            return [];
+        }
+
+        return data
+            .filter((media: any) => media.image?.poster && media.image?.backdrop && media.overview)
+            .map((media: any) => ({
+                id: media.id,
+                title: media.title || "Unknown Title",
+                isForAdult: media.isForAdult || false,
+                type: media.type === "movies" ? "movies" : "series",
+                image: {
+                    poster: media.image?.poster || "",
+                    backdrop: media.image?.backdrop || "",
+                },
+                overview: media.overview || "No overview available.",
+                releasedAt: media.releasedAt || "Unknown",
+                language: { original: media.language?.original || "Unknown" },
+            })) as Media[];
+    }),
 
       group: cache(async ({ name, type, page }: { name: string; type: Type; page: number }) => {
         const url = `${TMDB_API_URL}/3/${type === "movies" ? "movie" : "tv"}/${name}?api_key=${TMDB_API_KEY}&language=en-US&page=${page}`;
@@ -179,7 +207,7 @@ const api = {
                 console.warn("⚠ API: Spotlight returned null.");
                 return null;
             }
-    
+
             // ✅ Ensure all required fields exist
             return {
                 id: data.id || "unknown",
@@ -193,19 +221,7 @@ const api = {
                 overview: data.overview || "No overview available.",
                 releasedAt: data.releasedAt || "Unknown",
                 language: { original: data.language?.original || "Unknown" },
-            } as {
-                id: string;
-                title: string;
-                isForAdult: boolean;
-                type: "movies" | "series";
-                image: {
-                    poster: string;
-                    backdrop: string;
-                };
-                overview: string;
-                releasedAt: string;
-                language: { original: string };
-            };
+            } as Media;
         } catch (error) {
             console.error(`🚨 Error fetching Spotlight data: ${error}`);
             return null;  // Prevent app crash by returning null
