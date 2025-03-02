@@ -9,7 +9,6 @@ Software, structures and practices on this disney plus clone is 100% created and
 - [React.js](https://beta.reactjs.org/)
 - [Next.js](https://nextjs.org/)
 - [TailwindCSS](https://tailwindcss.com/)
-- [NextAuth](https://next-auth.js.org/)
 - [Framer Motion](https://www.framer.com/motion/)
 - [Typescript](https://www.typescriptlang.org/)
 - [TMDB API](https://www.themoviedb.org/)

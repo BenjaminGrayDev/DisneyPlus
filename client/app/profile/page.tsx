@@ -1,6 +1,5 @@
 import Collection from "../../components/sections/collection";
 import Cover from "../../components/sections/cover";
-import User from "../../components/sections/user";
 import Content from "../../components/layouts/content";
 import shuffleMedias from "../../helpers/shuffle-medias";
 import api from "../../library/api";
@@ -24,7 +23,7 @@ const Page = async () => {
       <Cover company="disney-plus" />
       <Content variant="secondary">
         {/* @ts-ignore */}
-        <User />
+        {/* <User /> */}
         <Collection.Landscape
           name="Just for you"
           medias={popularMedias}
