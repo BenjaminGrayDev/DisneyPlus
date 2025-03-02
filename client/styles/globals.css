@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer components {
+  .transition-smooth {
+    @apply transition-all duration-150 ease-in;
+  }
+}
+
+:root {
+  color-scheme: dark;
+}

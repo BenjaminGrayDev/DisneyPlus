@@ -1,0 +1,9 @@
+.login-content__left {
+    display: none !important; /* Hide the blue section */
+}
+
+.login-content__right {
+    width: 100% !important; /* Expand the login form */
+    max-width: 400px !important;
+    margin: auto;
+}
