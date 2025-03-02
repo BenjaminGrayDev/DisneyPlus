@@ -32,30 +32,6 @@ async function fetchAPI(url: string) {
 const api = {
   get: {
     medias: {
-      // search: cache(async ({ query, page }: { query: string; page: number }) => {
-      //   const url = `${TMDB_API_URL}/3/search/multi?api_key=${TMDB_API_KEY}&language=en-US&query=${encodeURIComponent(
-      //     query
-      //   )}&page=${page}&include_adult=false`;
-
-      //   const data = await fetchAPI(url);
-      //   if (!data || !Array.isArray(data.results)) return [];
-
-      //   return data.results
-      //     .filter((media: any) => media.poster_path && media.backdrop_path && media.overview)
-      //     .map((media: any) => ({
-      //       id: media.id,
-      //       title: media.title || media.name,
-      //       isForAdult: media.adult,
-      //       type: media.media_type === "movie" ? "movies" : "series",
-      //       image: {
-      //         poster: media.poster_path,
-      //         backdrop: media.backdrop_path,
-      //       },
-      //       overview: media.overview,
-      //       releasedAt: media.release_date || media.first_air_date,
-      //       language: { original: media.original_language },
-      //     })) as Media[];
-      // }),
 
       search: cache(async ({ query, page = 1 }: { query: string; page: number }) => {
         const url = `${API_BASE_URL}/media/search?query=${encodeURIComponent(query)}&page=${page}`;
@@ -85,28 +61,31 @@ const api = {
             })) as Media[];
     }),
 
-      group: cache(async ({ name, type, page }: { name: string; type: Type; page: number }) => {
-        const url = `${TMDB_API_URL}/3/${type === "movies" ? "movie" : "tv"}/${name}?api_key=${TMDB_API_KEY}&language=en-US&page=${page}`;
+      group: cache(async ({ name, type, page = 1 }: { name: string; type: "movies" | "series"; page: number }) => {
+        const url = `${API_BASE_URL}/media/group/${type}/${name}?page=${page}`;
+
+        console.log(`🔍 Fetching Group Media: ${url}`);
         const data = await fetchAPI(url);
-        if (!data || !Array.isArray(data.results)) return [];
+
+        if (!data || !Array.isArray(data)) return [];
 
         return shuffleMedias(
-          data.results
-            .filter((media: any) => media.poster_path && media.backdrop_path && media.overview)
+          data
+            .filter((media: any) => media.image.poster && media.image.backdrop && media.overview)
             .map((media: any) => ({
               id: media.id,
               title: media.title || media.name,
-              isForAdult: media.adult,
+              isForAdult: media.isForAdult || false,
               type: type === "movies" ? "movies" : "series",
               image: {
-                poster: media.poster_path,
-                backdrop: media.backdrop_path,
+                poster: media.image.poster || "",
+                backdrop: media.image.backdrop || "",
               },
-              overview: media.overview,
-              releasedAt: media.release_date || media.first_air_date,
-              language: { original: media.original_language },
+              overview: media.overview || "No overview available.",
+              releasedAt: media.releasedAt || "Unknown",
+              language: { original: media.language?.original || "Unknown" },
             }))
-        ) as Media[];
+        );
       }),
 
       trending: cache(async ({ type }: { type: Type }) => {

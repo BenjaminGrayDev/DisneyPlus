@@ -153,7 +153,6 @@ router.get("/trending/:type", async (req, res) => {
 });
 
 
-
 // 🏆 Get Grouped Media (Popular, Top-Rated)
 router.get("/group/:type/:group", async (req, res) => {
     try {
@@ -174,9 +173,31 @@ router.get("/group/:type/:group", async (req, res) => {
         const Model = type === "movies" ? Movie : TVShow;
         const results = await Model.find().sort(groupMapping[group]).limit(20);
 
-        res.json(results);
+        if (!results || results.length === 0) {
+            return res.status(404).json({ error: "No media found in this group" });
+        }
+
+        // ✅ Format response exactly like TMDB API results
+        const formattedResults = results
+            .filter(media => media.poster_path && media.backdrop_path && media.overview) // Ensure valid media
+            .map(media => ({
+                id: media.id,
+                title: media.title || media.name,
+                isForAdult: media.adult || false,
+                type: type === "movies" ? "movies" : "series",
+                image: {
+                    poster: media.poster_path || "",
+                    backdrop: media.backdrop_path || "",
+                },
+                overview: media.overview || "No overview available.",
+                releasedAt: media.release_date || media.first_air_date || "Unknown",
+                language: { original: media.original_language || "Unknown" },
+            }));
+
+        res.json(formattedResults);
     } catch (error) {
-        res.status(500).json({ error: "Internal Server Error" });
+        console.error("🚨 ERROR in /group/:type/:group:", error);
+        res.status(500).json({ error: "Internal Server Error", details: error.message });
     }
 });
 
