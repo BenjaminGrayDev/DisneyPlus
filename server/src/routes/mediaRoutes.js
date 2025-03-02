@@ -5,28 +5,14 @@ import Trending from "../models/Trending.js";
 
 const router = express.Router();
 
-/**
- * 📌 1️⃣ Search for Movies & TV Shows
- */
+// 🟢 Search Movies & TV Shows
 router.get("/search", async (req, res) => {
-    const { query, page = 1, limit = 20 } = req.query;
-
-    if (!query) return res.status(400).json({ error: "Query parameter is required" });
-
     try {
-        const movies = await Movie.find({
-            title: { $regex: query, $options: "i" },
-        })
-            .skip((page - 1) * limit)
-            .limit(parseInt(limit));
+        const { query, page = 1 } = req.query;
+        const movies = await Movie.find({ title: new RegExp(query, "i") }).limit(10);
+        const tvShows = await TVShow.find({ name: new RegExp(query, "i") }).limit(10);
 
-        const tvShows = await TVShow.find({
-            name: { $regex: query, $options: "i" },
-        })
-            .skip((page - 1) * limit)
-            .limit(parseInt(limit));
-
-        const results = [...movies, ...tvShows].map((media) => ({
+        const results = [...movies, ...tvShows].map(media => ({
             id: media.id,
             title: media.title || media.name,
             isForAdult: media.adult,
@@ -37,150 +23,211 @@ router.get("/search", async (req, res) => {
             },
             overview: media.overview,
             releasedAt: media.release_date || media.first_air_date,
-            language: {
-                original: media.original_language,
-            },
+            language: { original: media.original_language },
         }));
 
-        res.json({ results });
+        res.json(results);
     } catch (error) {
-        res.status(500).json({ error: "Failed to search media" });
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
-/**
- * 📌 2️⃣ Fetch Similar Movies or TV Shows
- */
-router.get("/:type/:id/similar", async (req, res) => {
-    const { type, id } = req.params;
-
-    try {
-        const Model = type === "movies" ? Movie : TVShow;
-        const media = await Model.findOne({ id: Number(id) });
-
-        if (!media) return res.status(404).json({ error: "Media not found" });
-
-        const similar = await Model.find({ id: { $in: media.similar_movies || media.similar_shows } });
-
-        res.json({ results: similar });
-    } catch (error) {
-        res.status(500).json({ error: "Failed to fetch similar media" });
-    }
-});
-
-/**
- * 📌 3️⃣ Fetch Trending Movies & TV Shows
- */
-router.get("/trending/:time", async (req, res) => {
-    const { time } = req.params;
-
-    try {
-        const trending = await Trending.findOne({ time_window: time });
-        if (!trending) return res.status(404).json({ message: "No trending data available" });
-
-        const movies = await Movie.find({ id: { $in: trending.results } });
-        const tvShows = await TVShow.find({ id: { $in: trending.results } });
-
-        res.json({ results: [...movies, ...tvShows] });
-    } catch (error) {
-        res.status(500).json({ error: "Failed to fetch trending media" });
-    }
-});
-
-/**
- * 📌 4️⃣ Fetch Grouped Media (Popular, Top-Rated, Now Playing, etc.)
- */
-router.get("/group/:name/:type/:page", async (req, res) => {
-    const { name, type, page } = req.params;
-    const limit = 20;
-    const skip = (page - 1) * limit;
-
-    try {
-        const Model = type === "movies" ? Movie : TVShow;
-        const query = {};
-
-        if (name === "popular") query.popularity = { $gt: 1000 };
-        if (name === "top-rated") query.vote_average = { $gte: 8 };
-        if (name === "now-playing") query.release_date = { $gte: "2023-01-01" };
-        if (name === "upcoming") query.release_date = { $gte: "2024-01-01" };
-
-        const results = await Model.find(query).skip(skip).limit(limit);
-        res.json({ results });
-    } catch (error) {
-        res.status(500).json({ error: "Failed to fetch grouped media" });
-    }
-});
-
-/**
- * 📌 5️⃣ Fetch Media Details
- */
-router.get("/:type/:id", async (req, res) => {
-    const { type, id } = req.params;
-
-    try {
-        const Model = type === "movies" ? Movie : TVShow;
-        const media = await Model.findOne({ id: Number(id) });
-
-        if (!media) return res.status(404).json({ error: "Media not found" });
-
-        res.json(media);
-    } catch (error) {
-        res.status(500).json({ error: "Failed to fetch media details" });
-    }
-});
-
-/**
- * 📌 6️⃣ Fetch Media Videos
- */
-router.get("/:type/:id/videos", async (req, res) => {
-    const { type, id } = req.params;
-
-    try {
-        const Model = type === "movies" ? Movie : TVShow;
-        const media = await Model.findOne({ id: Number(id) });
-
-        if (!media) return res.status(404).json({ error: "Media not found" });
-
-        res.json({ videos: media.videos });
-    } catch (error) {
-        res.status(500).json({ error: "Failed to fetch media videos" });
-    }
-});
-
-/**
- * 📌 7️⃣ Fetch Media Logos
- */
-router.get("/:type/:id/logos", async (req, res) => {
-    const { type, id } = req.params;
-
-    try {
-        const Model = type === "movies" ? Movie : TVShow;
-        const media = await Model.findOne({ id: Number(id) });
-
-        if (!media) return res.status(404).json({ error: "Media not found" });
-
-        res.json({ logos: media.images.logos });
-    } catch (error) {
-        res.status(500).json({ error: "Failed to fetch media logos" });
-    }
-});
-
-/**
- * 📌 8️⃣ Fetch Spotlight Media (Random Trending)
- */
 router.get("/spotlight/:type", async (req, res) => {
-    const { type } = req.params;
-
+    console.log("🔍 Reached /spotlight route");
     try {
-        const Model = type === "movies" ? Movie : TVShow;
-        const count = await Model.countDocuments();
+        const { type } = req.params;
+        console.log(`🔍 Fetching spotlight for type: ${type}`);
+
+        let collection;
+
+        if (type === "movies") {
+            collection = Movie;
+        } else if (type === "series") {
+            collection = TVShow;
+        } else if (type === "all") {
+            const movies = await Movie.find();
+            const series = await TVShow.find();
+            const allMedia = [...movies, ...series];
+
+            console.log(`📊 Found ${movies.length} movies, ${series.length} series.`);
+
+            if (allMedia.length === 0) {
+                console.log("⚠ No media found.");
+                return res.status(404).json({ error: "No spotlight media available" });
+            }
+
+            const randomIndex = Math.floor(Math.random() * allMedia.length);
+            const media = allMedia[randomIndex];
+
+            return res.json({
+                id: media.id,
+                title: media.title || media.name,
+                isForAdult: media.adult || false,
+                type: media.media_type === "movie" ? "movies" : "series",
+                image: {
+                    poster: media.poster_path || "",
+                    backdrop: media.backdrop_path || "",
+                },
+                overview: media.overview || "No overview available.",
+                releasedAt: media.release_date || media.first_air_date || "Unknown",
+                language: { original: media.original_language || "Unknown" },
+            });
+        } else {
+            console.log("❌ Invalid media type received.");
+            return res.status(400).json({ error: "Invalid media type. Use 'movies', 'series', or 'all'." });
+        }
+
+        const count = await collection.countDocuments();
+        console.log(`🔢 Found ${count} media items in ${type}`);
+
+        if (count === 0) {
+            console.log("⚠ No media found in the database.");
+            return res.status(404).json({ error: "No spotlight media available" });
+        }
+
         const random = Math.floor(Math.random() * count);
-        const media = await Model.findOne().skip(random);
+        console.log(`🎲 Random index selected: ${random}`);
+
+        const media = await collection.findOne().skip(random);
+
+        if (!media) {
+            console.log("❌ No media found after random selection.");
+            return res.status(404).json({ error: "Spotlight media not found" });
+        }
+
+        console.log(`✅ Returning media: ${media.title || media.name}`);
+
+        // ✅ Return in the same structure as your frontend expects
+        res.json({
+            id: media.id,
+            title: media.title || media.name,
+            isForAdult: media.adult || false,
+            type: media.media_type === "movie" ? "movies" : "series",
+            image: {
+                poster: media.poster_path || "",
+                backdrop: media.backdrop_path || "",
+            },
+            overview: media.overview || "No overview available.",
+            releasedAt: media.release_date || media.first_air_date || "Unknown",
+            language: { original: media.original_language || "Unknown" },
+        });
+    } catch (error) {
+        console.error("🚨 ERROR in /spotlight/:type:", error);
+        res.status(500).json({ error: "Internal server error", details: error.message });
+    }
+});
+
+
+// 🔥 Get Trending Media
+router.get("/trending/:type", async (req, res) => {
+    console.log("🔍 Reached /trending route");
+    try {
+        const { type } = req.params;
+        console.log(`🔍 Fetching trending for type: ${type}`);
+
+        // Find trending entry in the database
+        const trending = await Trending.findOne({ media_type: type, time_window: "day" });
+
+        if (!trending) {
+            console.log("⚠ No trending media found in DB.");
+            return res.status(404).json({ error: "No trending media found" });
+        }
+
+        console.log(`📊 Trending results count: ${trending.results.length}`);
+
+        const results = await Promise.all(
+            trending.results.map(async (id) => {
+                console.log(`🔍 Searching for media ID: ${id}`);
+                return type === "movies" ? await Movie.findOne({ id }) : await TVShow.findOne({ id });
+            })
+        );
+
+        const filteredResults = results.filter(Boolean);
+        console.log(`✅ Returning ${filteredResults.length} trending items`);
+
+        res.json(filteredResults);
+    } catch (error) {
+        console.error("🚨 ERROR in /trending/:type:", error);
+        res.status(500).json({ error: "Internal Server Error", details: error.message });
+    }
+});
+
+
+
+// 🏆 Get Grouped Media (Popular, Top-Rated)
+router.get("/group/:type/:group", async (req, res) => {
+    try {
+        const { type, group } = req.params;
+
+        const groupMapping = {
+            "popular": { popularity: -1 },
+            "top-rated": { vote_average: -1 },
+            "now-playing": { release_date: -1 },
+            "upcoming": { release_date: 1 },
+            "airing-today": { first_air_date: -1 },
+        };
+
+        if (!groupMapping[group]) {
+            return res.status(400).json({ error: "Invalid group type" });
+        }
+
+        const Model = type === "movies" ? Movie : TVShow;
+        const results = await Model.find().sort(groupMapping[group]).limit(20);
+
+        res.json(results);
+    } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+
+// 🔵 Get Movie or TV Show Details
+router.get("/:type/:id", async (req, res) => {
+    try {
+        const { type, id } = req.params;
+        const media = type === "movies" ? await Movie.findOne({ id }) : await TVShow.findOne({ id });
+
+        if (!media) return res.status(404).json({ error: "Not Found" });
 
         res.json(media);
     } catch (error) {
-        res.status(500).json({ error: "Failed to fetch spotlight media" });
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
+
+
+
+// 🎥 Get Videos (Trailers, Teasers)
+router.get("/:type/:id/videos", async (req, res) => {
+    try {
+        const { type, id } = req.params;
+        const media = type === "movies" ? await Movie.findOne({ id }) : await TVShow.findOne({ id });
+
+        if (!media) return res.status(404).json({ error: "Not Found" });
+
+        res.json(media.videos || []);
+    } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+// 🖼 Get Images (Posters, Backdrops, Logos)
+router.get("/:type/:id/images", async (req, res) => {
+    try {
+        const { type, id } = req.params;
+        const media = type === "movies" ? await Movie.findOne({ id }) : await TVShow.findOne({ id });
+
+        if (!media) return res.status(404).json({ error: "Not Found" });
+
+        res.json(media.images || []);
+    } catch (error) {
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+});
+
+
+
+
+
 
 export default router;

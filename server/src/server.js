@@ -9,6 +9,7 @@ import mediaRoutes from "./routes/mediaRoutes.js";
 import setupAdminJS from './admin/adminSetup.js';
 import  './models/Movie.js';
 import  './models/TVShow.js';
+import  './models/Trending.js';
 
 dotenv.config();
 connectDB();

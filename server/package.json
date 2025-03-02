@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js",
+    "start": "set NODE_OPTIONS=--max-old-space-size=4096 && node src/server.js",
+    "dev": "set NODE_OPTIONS=--max-old-space-size=4096 && nodemon src/server.js",
     "build": "echo 'No build step needed for backend'",
     "test": "jest --coverage",
     "lint": "eslint . --fix",

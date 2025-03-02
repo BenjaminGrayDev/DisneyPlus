@@ -65,10 +65,10 @@ const Portrait = ({ name, medias }: Props) => {
               key={media.id}
               className={`
                 ${index < 3 ? "" : "hidden"}
-                ${index < 4 ? "tablet:block" : "hidden"} 
-                ${index < 5 ? "tala:block" : "hidden"} 
-                ${index < 6 ? "laptop:block" : "hidden"}  
-                ${index < 8 ? "desktop:block" : "hidden"} 
+                ${index < 4 ? "tablet:block" : "hidden"}
+                ${index < 5 ? "tala:block" : "hidden"}
+                ${index < 6 ? "laptop:block" : "hidden"}
+                ${index < 8 ? "desktop:block" : "hidden"}
                 relative`}>
               <Card media={media} />
             </li>

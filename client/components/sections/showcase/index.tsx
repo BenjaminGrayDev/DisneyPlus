@@ -6,16 +6,26 @@ import convertLanguage from "../../../helpers/convert-language";
 import humanizeRuntime from "../../../helpers/humanize-runtime";
 
 type Props = {
-  media: Media;
+  media: Media | null; // ✅ Allow `null` to prevent crashing
   isMediaSelected: boolean;
 };
 
 const Showcase = async ({ media, isMediaSelected }: Props) => {
-  const type = media.type!;
-  const id = media.id;
-  const logo = await api.get.media.logo({ type, id });
-  const measure = await api.get.media.measure({ type, id });
-  const language = convertLanguage(media.language!.original!);
+  if (!media) {
+    console.warn("⚠ Showcase: No media found! Showing fallback.");
+    return (
+      <section className="space-y-6 tablet:max-w-md">
+        <div className="flex items-center justify-center h-full w-full bg-gray-900 text-white text-lg">
+          No Media Available
+        </div>
+      </section>
+    );
+  }
+
+  const { type, id, image, title, releasedAt, overview, isForAdult, language } = media;
+  const logo = type ? await api.get.media.logo({ type, id }) : null;
+  const measure = type && await api.get.media.measure ? await api.get.media.measure({ type, id }) : "N/A";
+  const lang = language?.original ? convertLanguage(language.original) : { en: { name: "English" } };
 
   return (
     <section className="space-y-6 tablet:max-w-md">
@@ -27,12 +37,8 @@ const Showcase = async ({ media, isMediaSelected }: Props) => {
           }}
           className="relative bottom-0 max-h-56 w-full tablet:absolute">
           <Image
-            src={
-              logo
-                ? `https://image.tmdb.org/t/p/w500${logo!.image!}`
-                : "/assets/images/disney-plus-logo.png"
-            }
-            alt={media.title!}
+            src={logo ? `https://image.tmdb.org/t/p/w500${logo.image}` : "/assets/images/disney-plus-logo.png"}
+            alt={title || "Unknown Title"}
             fill
             sizes="500px"
             priority
@@ -44,22 +50,15 @@ const Showcase = async ({ media, isMediaSelected }: Props) => {
         {/* Details */}
         <div className="flex items-center gap-1 text-xs tablet:text-base">
           <p className="font-semibold">
-            {media.releasedAt?.slice(0, 4)
-              ? media.releasedAt?.slice(0, 4)
-              : "New"}{" "}
-            •{" "}
-            {type === "movies"
-              ? humanizeRuntime(measure)
-              : `${measure} Seasons`}{" "}
-            • {language?.en.name ? language?.en.name : "English"} •
+            {releasedAt?.slice(0, 4) || "New"} • {type === "movies" ? humanizeRuntime(measure) : `${measure} Seasons`} • {lang?.en?.name || "Unknown Language"} •
           </p>
           <div className="rounded bg-rated-dark px-2 py-0.5 font-semibold tablet:py-0">
-            {media.isForAdult ? "18+" : "PG"}
+            {isForAdult ? "18+" : "PG"}
           </div>
         </div>
         {/* Overview */}
         <div className="overflow-y-auto scrollbar-none tablet:max-h-12">
-          <p className="text-xs tablet:text-base">{media.overview!}</p>
+          <p className="text-xs tablet:text-base">{overview || "No description available."}</p>
         </div>
       </div>
       {/* Actions */}
