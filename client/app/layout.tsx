@@ -1,7 +1,7 @@
 import "../styles/globals.css";
 import { Inter } from "@next/font/google";
 import Navbar from "../components/sections/navbar";
-import { UserProvider } from "../context/UserContext";
+// import { UserProvider } from "../context/UserContext";
 
 
 const inter = Inter({
@@ -16,7 +16,7 @@ const Layout = async ({ children }: { children: React.ReactNode })  => {
     <html lang="en" className="bg-background-dark text-typography-light">
       <head />
       <body className={inter.className}>
-        <UserProvider>
+
           <div className="grid tablet:grid-cols-[auto,1fr]">
             <aside className="hidden tablet:block">
               <Navbar.Vertical />
@@ -26,7 +26,7 @@ const Layout = async ({ children }: { children: React.ReactNode })  => {
             </main>
             <Navbar.Horizontal />
           </div>
-        </UserProvider>
+
       </body>
     </html>
   );

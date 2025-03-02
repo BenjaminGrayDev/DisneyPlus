@@ -1,30 +1,31 @@
-
-import Image from "next/image";
-import Access from "../components/sections/access";
-
+import Billboard from "../components/sections/billboard";
+import Showcase from "../components/sections/showcase";
+import Franchise from "../components/sections/franchise";
+import Content from "../components/layouts/content";
+import api from "../library/api";
+import Collection from "../components/sections/collection";
+import data from "../library/data";
 
 const Page = async () => {
-  return (
-    <>
-            <main className="relative grid h-screen w-screen items-center">
-              <div className="absolute -z-10 h-full w-full">
-                <Image
-                  src="/assets/images/aa.png"
-                  alt="Disney Background"
-                  fill
-                  sizes="100vh"
-                  priority
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 z-10 bg-gradient-to-t from-background-dark to-transparent" />
-                <div className="absolute inset-0 z-10 bg-gradient-to-t from-background-dark to-transparent" />
-                <div className="absolute inset-0 z-10 bg-gradient-to-t from-background-dark to-transparent" />
-                <div className="absolute inset-0 z-10 bg-gradient-to-t from-background-dark to-transparent" />
-              </div>
-              <Access />
-            </main>
-    </>
-  );
+    const spotlightMedia = await api.get.media.spotlight({ type: "all" });
+    const collections = await data("home");
+
+    return (
+        <>
+            {/* @ts-ignore */}
+            <Billboard media={spotlightMedia} />
+            <Content variant="primary">
+                {/* @ts-ignore */}
+                <Showcase media={spotlightMedia} isMediaSelected={false} />
+                <Content isSpacerOnly>
+                <Franchise />
+                {collections.map(({ id, name, medias }) => (
+                    <Collection.Portrait key={id} name={name} medias={medias} />
+                ))}
+                </Content>
+            </Content>
+        </>
+    );
 };
 
 export default Page;
