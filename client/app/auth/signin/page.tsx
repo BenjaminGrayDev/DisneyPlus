@@ -9,7 +9,7 @@ import GoogleAuthButton from "../../../components/forms/GoogleAuthButton";
 import { BiSearch } from "react-icons/bi";
 
 
-export default function SignupPage() {
+export default function SigninPage() {
 
     const [formData, setFormData] = useState({
         email: "",

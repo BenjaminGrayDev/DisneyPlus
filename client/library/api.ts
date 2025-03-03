@@ -1,7 +1,6 @@
 import type { Media, Video, Logo } from "../types";
 import { cache } from "react";
 import shuffleMedias from "../helpers/shuffle-medias";
-import axios from "axios";
 
 // ✅ Replace with your backend API URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";

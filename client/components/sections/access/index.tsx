@@ -23,12 +23,21 @@ const Access = () => {
       <h1 className="text-center font-bold tablet:text-2xl">
         Home of your favorite stories
       </h1>
-      <Button
-        variant={{ name: "secondary" }}
-        isFull
-        onClick={() => router.push("/auth/signin")}>
-        SignIn
-      </Button>
+      <div className="flex flex-row gap-4">
+        <Button
+          variant={{ name: "secondary" }}
+          isFull
+          onClick={() => router.push("/auth/signin")}>
+          SignIn
+        </Button>
+        <Button
+          variant={{ name: "secondary" }}
+          isFull
+          onClick={() => router.push("/auth/signup")}>
+          SignUp
+        </Button>
+      </div>
+
       <Link
         href="https://github.com/ntabucejo/disney-plus"
         className="block text-center text-ms font-bold">

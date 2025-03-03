@@ -35,7 +35,7 @@ export type Video = {
 
 export type User = {
   role: string;
-  username: string;
+  name: string;
   email: string;
   planId: string;
   subscriptionId: string;
