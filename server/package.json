@@ -29,6 +29,7 @@
     "express-session": "^1.18.1",
     "helmet": "^8.0.0",
     "i18next-http-backend": "^3.0.2",
+    "ioredis": "^5.5.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.11.0",
     "morgan": "^1.10.0",

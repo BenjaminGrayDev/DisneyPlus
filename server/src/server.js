@@ -37,6 +37,25 @@ app.use('/api/auth', authRoutes);
 
 app.use("/api/media", mediaRoutes);
 
+// ✅ Indexing for Faster Queries (Only Run Once)
+async function createIndexes() {
+    console.log("🚀 Creating indexes for faster queries...");
+    await Movie.collection.createIndex({ id: 1 });
+    await Movie.collection.createIndex({ popularity: -1 });
+    await Movie.collection.createIndex({ vote_average: -1 });
+    await Movie.collection.createIndex({ release_date: -1 });
+
+    await TVShow.collection.createIndex({ id: 1 });
+    await TVShow.collection.createIndex({ popularity: -1 });
+    await TVShow.collection.createIndex({ vote_average: -1 });
+    await TVShow.collection.createIndex({ first_air_date: -1 });
+
+    console.log("✅ Indexes created successfully.");
+}
+
+// ✅ Call createIndexes AFTER DB connection
+createIndexes().catch(console.error);
+
 // Setup AdminJS
 setupAdminJS(app);
 

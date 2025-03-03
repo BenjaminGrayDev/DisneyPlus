@@ -32,77 +32,23 @@ router.get("/search", async (req, res) => {
     }
 });
 
+// ✅ Get Spotlight Media (Optimized)
 router.get("/spotlight/:type", async (req, res) => {
-    console.log("🔍 Reached /spotlight route");
     try {
         const { type } = req.params;
-        console.log(`🔍 Fetching spotlight for type: ${type}`);
-
-        let collection;
-
-        if (type === "movies") {
-            collection = Movie;
-        } else if (type === "series") {
-            collection = TVShow;
-        } else if (type === "all") {
-            const movies = await Movie.find();
-            const series = await TVShow.find();
-            const allMedia = [...movies, ...series];
-
-            console.log(`📊 Found ${movies.length} movies, ${series.length} series.`);
-
-            if (allMedia.length === 0) {
-                console.log("⚠ No media found.");
-                return res.status(404).json({ error: "No spotlight media available" });
-            }
-
-            const randomIndex = Math.floor(Math.random() * allMedia.length);
-            const media = allMedia[randomIndex];
-
-            return res.json({
-                id: media.id,
-                title: media.title || media.name,
-                isForAdult: media.adult || false,
-                type: media.media_type === "movie" ? "movies" : "series",
-                image: {
-                    poster: media.poster_path || "",
-                    backdrop: media.backdrop_path || "",
-                },
-                overview: media.overview || "No overview available.",
-                releasedAt: media.release_date || media.first_air_date || "Unknown",
-                language: { original: media.original_language || "Unknown" },
-            });
-        } else {
-            console.log("❌ Invalid media type received.");
-            return res.status(400).json({ error: "Invalid media type. Use 'movies', 'series', or 'all'." });
-        }
-
+        const collection = type === "movies" ? Movie : TVShow;
         const count = await collection.countDocuments();
-        console.log(`🔢 Found ${count} media items in ${type}`);
-
-        if (count === 0) {
-            console.log("⚠ No media found in the database.");
-            return res.status(404).json({ error: "No spotlight media available" });
-        }
+        if (count === 0) return res.status(404).json({ error: "No spotlight media" });
 
         const random = Math.floor(Math.random() * count);
-        console.log(`🎲 Random index selected: ${random}`);
+        const media = await collection.findOne().skip(random).lean();
+        if (!media) return res.status(404).json({ error: "No media found" });
 
-        const media = await collection.findOne().skip(random);
-
-        if (!media) {
-            console.log("❌ No media found after random selection.");
-            return res.status(404).json({ error: "Spotlight media not found" });
-        }
-
-        console.log(`✅ Returning media: ${media.title || media.name}`);
-
-        // ✅ Return in the same structure as your frontend expects
         res.json({
             id: media.id,
             title: media.title || media.name,
             isForAdult: media.adult || false,
-            type: media.media_type === "movie" ? "movies" : "series",
+            type,
             image: {
                 poster: media.poster_path || "",
                 backdrop: media.backdrop_path || "",
@@ -112,76 +58,51 @@ router.get("/spotlight/:type", async (req, res) => {
             language: { original: media.original_language || "Unknown" },
         });
     } catch (error) {
-        console.error("🚨 ERROR in /spotlight/:type:", error);
-        res.status(500).json({ error: "Internal server error", details: error.message });
+        console.error("🚨 Error in /spotlight/:type:", error);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
 // 🔥 Get Trending Media
 router.get("/trending/:type", async (req, res) => {
-    console.log("🔍 Reached /trending route");
     try {
         const { type } = req.params;
-        console.log(`🔍 Fetching trending for type: ${type}`);
+        if (!["movies", "series"].includes(type)) return res.status(400).json({ error: "Invalid type" });
 
-        // Validate type
-        if (!["movies", "series"].includes(type)) {
-            return res.status(400).json({ error: "Invalid type parameter" });
-        }
+        const trending = await Trending.findOne({ media_type: type, time_window: "day" }).lean();
+        if (!trending || !trending.results.length) return res.status(404).json({ error: "No trending media" });
 
-        // Find trending entry in the database
-        const trending = await Trending.findOne({ media_type: type, time_window: "day" });
+        const results = await (type === "movies" ? Movie : TVShow)
+            .find({ id: { $in: trending.results } })
+            .select("id title name adult poster_path backdrop_path overview release_date first_air_date original_language")
+            .lean();
 
-        if (!trending || !trending.results || trending.results.length === 0) {
-            console.log("⚠ No trending media found in DB.");
-            return res.status(404).json({ error: "No trending media found" });
-        }
-
-        console.log(`📊 Trending results count: ${trending.results.length}`);
-
-        const results = await Promise.all(
-            trending.results.map(async (id) => {
-                console.log(`🔍 Searching for media ID: ${id}`);
-                return type === "movies" ? await Movie.findOne({ id }) : await TVShow.findOne({ id });
-            })
-        );
-
-        // ✅ Ensure valid media entries (remove null values)
-        const filteredResults = results.filter(Boolean);
-
-        console.log(`✅ Returning ${filteredResults.length} trending items`);
-
-        // ✅ Format response exactly like frontend API
-        const formattedResults = filteredResults
-            .filter(media => media.poster_path && media.backdrop_path && media.overview) // Ensure valid media
-            .map(media => ({
-                id: media.id,
-                title: media.title || media.name,
-                isForAdult: media.adult || false,
-                type: media.media_type === "movie" ? "movies" : "series",
-                image: {
-                    poster: media.poster_path || "",
-                    backdrop: media.backdrop_path || "",
-                },
-                overview: media.overview || "No overview available.",
-                releasedAt: media.release_date || media.first_air_date || "Unknown",
-                language: { original: media.original_language || "Unknown" },
-            }));
-
-        res.json(formattedResults);
+        res.json(results.map(media => ({
+            id: media.id,
+            title: media.title || media.name,
+            isForAdult: media.adult || false,
+            type,
+            image: {
+                poster: media.poster_path || "",
+                backdrop: media.backdrop_path || "",
+            },
+            overview: media.overview || "No overview available.",
+            releasedAt: media.release_date || media.first_air_date || "Unknown",
+            language: { original: media.original_language || "Unknown" },
+        })));
     } catch (error) {
-        console.error("🚨 ERROR in /trending/:type:", error);
-        res.status(500).json({ error: "Internal Server Error", details: error.message });
+        console.error("🚨 Error in /trending/:type:", error);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
+
 
 // 🏆 Get Grouped Media (Popular, Top-Rated)
 router.get("/group/:type/:group", async (req, res) => {
     try {
         const { type, group } = req.params;
         const page = parseInt(req.query.page) || 1;
-
-        console.log(`🔍 Fetching Group Media: media_type=${type}, Group=${group}, Page=${page}`);
+        const Model = type === "movies" ? Movie : TVShow;
 
         const groupMapping = {
             "popular": { popularity: -1 },
@@ -191,41 +112,31 @@ router.get("/group/:type/:group", async (req, res) => {
             "airing-today": { first_air_date: -1 },
         };
 
-        if (!groupMapping[group]) {
-            return res.status(400).json({ error: "Invalid group type" });
-        }
+        if (!groupMapping[group]) return res.status(400).json({ error: "Invalid group" });
 
-        const Model = type === "movies" ? Movie : TVShow;
-
-        const results = await Model.find() // ✅ Only fetch correct type
+        const results = await Model.find()
             .sort(groupMapping[group])
             .skip((page - 1) * 20)
-            .limit(20);
+            .limit(20)
+            .select("id title name adult poster_path backdrop_path overview first_air_date original_language")
+            .lean();
 
-        if (!results || results.length === 0) {
-            return res.status(404).json({ error: "No media found in this group" });
-        }
-
-        const formattedResults = results
-            .filter(media => media.poster_path && media.backdrop_path && media.overview) // ✅ Only include valid media
-            .map(media => ({
-                id: media.id,
-                title: media.name || "Unknown Title",
-                isForAdult: media.adult || false,
-                type: media.media_type, // ✅ Use `media_type` instead of `type`
-                image: {
-                    poster: media.poster_path || "",
-                    backdrop: media.backdrop_path || "",
-                },
-                overview: media.overview || "No overview available.",
-                releasedAt: media.first_air_date || "Unknown",
-                language: { original: media.original_language || "Unknown" },
-            }));
-
-        res.json(formattedResults);
+        res.json(results.map(media => ({
+            id: media.id,
+            title: media.name || "Unknown Title",
+            isForAdult: media.adult || false,
+            type,
+            image: {
+                poster: media.poster_path || "",
+                backdrop: media.backdrop_path || "",
+            },
+            overview: media.overview || "No overview available.",
+            releasedAt: media.first_air_date || "Unknown",
+            language: { original: media.original_language || "Unknown" },
+        })));
     } catch (error) {
-        console.error("🚨 ERROR in /group/:type/:group:", error);
-        res.status(500).json({ error: "Internal Server Error", details: error.message });
+        console.error("🚨 Error in /group/:type/:group:", error);
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
 
@@ -414,6 +325,5 @@ router.get("/:type/:id/measure", async (req, res) => {
         res.status(500).json({ error: "Internal Server Error", details: error.message });
     }
 });
-
 
 export default router;

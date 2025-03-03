@@ -131,7 +131,7 @@ export default function SigninPage() {
     };
 
     return (
-        <main className="min-h-screen w-full flex items-center justify-center text-gray-800 dark:text-gray-200">
+        <main className="min-h-screen bg-gray-100 w-full flex items-center justify-center text-gray-800 dark:text-gray-200">
             <div className="w-full max-w-md bg-white dark:bg-slate-800 shadow-lg rounded-lg p-8">
 
                 <div className="flex justify-between items-center mb-6">

@@ -16,7 +16,7 @@ const list = [
   },
   {
     id: 2,
-    href: "/",
+    href: "/dashboard",
     Icon: HomeIcon,
   },
   {
