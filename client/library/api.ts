@@ -6,9 +6,6 @@ import axios from "axios";
 // ✅ Replace with your backend API URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
-const TMDB_API_KEY = process.env.TMDB_API_KEY!;
-const TMDB_API_URL = process.env.TMDB_API_URL!;
-
 type Group =
   | {
       name: "popular" | "top-rated" | "now-playing" | "upcoming";
@@ -153,64 +150,61 @@ const api = {
 
     media: {
       details: cache(async ({ type, id }: { type: Type; id: string }) => {
-        const url = `${TMDB_API_URL}/3/${type === "movies" ? "movie" : "tv"}/${id}?api_key=${TMDB_API_KEY}&language=en-US`;
+        const url = `${API_BASE_URL}/media/${type}/${id}`; // 🔄 Fetch from your backend
         const data = await fetchAPI(url);
         if (!data) return null;
 
         return {
           id: data.id,
-          title: data.title || data.name,
-          isForAdult: data.adult,
+          title: data.title,
+          isForAdult: data.isForAdult,
           type,
           image: {
-            poster: data.poster_path,
-            backdrop: data.backdrop_path,
+            poster: data.image?.poster || "",
+            backdrop: data.image?.backdrop || "",
           },
-          overview: data.overview,
-          releasedAt: data.release_date || data.first_air_date,
-          language: { original: data.original_language },
+          overview: data.overview || "No overview available.",
+          releasedAt: data.releasedAt || "Unknown",
+          language: { original: data.language?.original || "Unknown" },
         } as Media;
       }),
 
       measure: cache(async ({ type, id }: { type: Type; id: string }) => {
-        const url = `${TMDB_API_URL}/3/${type === "movies" ? "movie" : "tv"}/${id}?api_key=${TMDB_API_KEY}&language=en-US`;
+        const url = `${API_BASE_URL}/media/${type}/${id}/measure`;
         const data = await fetchAPI(url);
-        return data ? (type === "movies" ? data.runtime : data.number_of_seasons) : null;
+        return data ? data.measure : null; // ✅ Return runtime or number_of_seasons
       }),
 
       video: cache(async ({ type, id }: { type: Type; id: string }) => {
-        const url = `${TMDB_API_URL}/3/${type === "movies" ? "movie" : "tv"}/${id}/videos?api_key=${TMDB_API_KEY}&language=en-US`;
+        const url = `${API_BASE_URL}/media/${type}/${id}/videos`;
         const data = await fetchAPI(url);
         if (!data || !Array.isArray(data.results)) return null;
 
-        const video = data.results.find((vid: any) => (vid.type === "Trailer" || vid.type === "Teaser") && vid.official);
-        return video
-          ? {
-              id: video.id,
-              name: video.name,
-              key: video.key,
-              site: video.site,
-              size: video.size,
-              type: video.type,
-              isOfficial: video.official,
-            }
-          : null;
+        const video = data.find((vid: Video) => (vid.type === "Trailer" || vid.type === "Teaser") && vid.isOfficial);
+
+        return video || null;
       }),
 
       logo: cache(async ({ type, id }: { type: Type; id: string }) => {
-        const url = `${TMDB_API_URL}/3/${type === "movies" ? "movie" : "tv"}/${id}/images?api_key=${TMDB_API_KEY}`;
+        const url = `${API_BASE_URL}/media/${type}/${id}/images`;
         const data = await fetchAPI(url);
-        if (!data || !Array.isArray(data.logos)) return null;
 
-        const logo = data.logos.find((logo: any) => logo.iso_639_1 === "en");
-        return logo
-          ? {
-              aspectRatio: logo.aspect_ratio,
-              width: logo.width,
-              height: logo.height,
-              image: logo.file_path,
-            }
-          : null;
+        // ✅ Ensure `data` exists
+        if (!data || !data.logos) return null;  // 🔹 Handle undefined case
+
+        // ✅ Ensure `logos` is an array
+        const logos = Array.isArray(data.logos) ? data.logos : [];
+
+        // ✅ Find the English logo (or fallback to the first logo if available)
+        const logo = logos.find((logo: any) => logo.iso_639_1 === "en") || logos[0];
+
+        if (!logo) return null; // ✅ If no logos exist, return null
+        return {
+          aspectRatio: logo.aspect_ratio || 1, // Default to 1 if missing
+          width: logo.width || 500, // Default width if missing
+          height: logo.height || Math.round(500 / (logo.aspect_ratio || 1)), // Calculate height if missing
+          image: logo.file_path, // Use file path
+        };
       }),
 
       spotlight: cache(async ({ type }: { type: "movies" | "series" | "all" }) => {
