@@ -28,19 +28,41 @@ const adminOptions = {
     },
 };
 
-/**
- * Function to dynamically fetch all collections from MongoDB and register them as Mongoose models.
- */
+const waitForDBConnection = async () => {
+    return new Promise((resolve, reject) => {
+        if (mongoose.connection.readyState === 1) {
+            console.log("✅ MongoDB is already connected.");
+            return resolve();
+        }
+
+        console.log("⏳ Waiting for MongoDB connection...");
+        mongoose.connection.once("open", () => {
+            console.log("✅ MongoDB is now connected.");
+            resolve();
+        });
+
+        mongoose.connection.on("error", (err) => {
+            console.error("❌ MongoDB Connection Error:", err);
+            reject(err);
+        });
+    });
+};
+
 const loadAllCollections = async () => {
     try {
+        // Ensure MongoDB is fully connected before proceeding
+        await waitForDBConnection();
+
         // Fetch all collections from MongoDB
-        const collections = await mongoose.connection.db.listCollections().toArray();
+        const db = mongoose.connection.db;
+        if (!db) throw new Error("MongoDB connection is not ready.");
+        
+        const collections = await db.listCollections().toArray();
 
         // Loop through collections and create models if they don't exist
         collections.forEach((collection) => {
             const collectionName = collection.name;
 
-            // If the model does not already exist, define a basic schema dynamically
             if (!mongoose.models[collectionName]) {
                 const schema = new mongoose.Schema({}, { strict: false, collection: collectionName });
                 mongoose.model(collectionName, schema);
@@ -75,6 +97,9 @@ const setupAdminJS = async (app) => {
         const adminJs = new AdminJS({
             resources: allResources, // ✅ Load all models dynamically
             rootPath: '/admin',
+            branding: {
+                companyName: 'My Admin Panel',
+            },
             ...adminOptions, // Use predefined options
         });
 

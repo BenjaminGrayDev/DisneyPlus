@@ -8,8 +8,8 @@ import authRoutes from './routes/authRoutes.js';
 import mediaRoutes from "./routes/mediaRoutes.js";
 import paypalRoutes from "./routes/paypalRoutes.js";
 import setupAdminJS from './admin/adminSetup.js';
-import  './models/Movie.js';
-import  './models/TVShow.js';
+import Movie from './models/Movie.js';
+import TVShow from './models/TVShow.js';
 import  './models/Trending.js';
 import  './models/Paypal.js';
 import { createPlansAndGetID } from './service/paypal/plan/CreatePlan.js';
@@ -45,18 +45,43 @@ app.use("/api/paypal", paypalRoutes);
 // ✅ Indexing for Faster Queries (Only Run Once)
 async function createIndexes() {
     console.log("🚀 Creating indexes for faster queries...");
-    await Movie.collection.createIndex({ id: 1 });
-    await Movie.collection.createIndex({ popularity: -1 });
-    await Movie.collection.createIndex({ vote_average: -1 });
-    await Movie.collection.createIndex({ release_date: -1 });
 
-    await TVShow.collection.createIndex({ id: 1 });
-    await TVShow.collection.createIndex({ popularity: -1 });
-    await TVShow.collection.createIndex({ vote_average: -1 });
-    await TVShow.collection.createIndex({ first_air_date: -1 });
+    const movieIndexes = await Movie.collection.indexes();
+    const tvShowIndexes = await TVShow.collection.indexes();
+
+    const existingMovieIndexes = movieIndexes.map(index => index.name);
+    const existingTVShowIndexes = tvShowIndexes.map(index => index.name);
+
+    const indexesToCreate = [
+        { key: { id: 1 }, options: { name: "id_1" } },
+        { key: { popularity: -1 }, options: { name: "popularity_-1" } },
+        { key: { vote_average: -1 }, options: { name: "vote_average_-1" } },
+        { key: { release_date: -1 }, options: { name: "release_date_-1" } },
+    ];
+
+    const tvIndexesToCreate = [
+        { key: { id: 1 }, options: { name: "id_1" } },
+        { key: { popularity: -1 }, options: { name: "popularity_-1" } },
+        { key: { vote_average: -1 }, options: { name: "vote_average_-1" } },
+        { key: { first_air_date: -1 }, options: { name: "first_air_date_-1" } },
+    ];
+
+    // Create only if index doesn't exist
+    for (const { key, options } of indexesToCreate) {
+        if (!existingMovieIndexes.includes(options.name)) {
+            await Movie.collection.createIndex(key, options);
+        }
+    }
+
+    for (const { key, options } of tvIndexesToCreate) {
+        if (!existingTVShowIndexes.includes(options.name)) {
+            await TVShow.collection.createIndex(key, options);
+        }
+    }
 
     console.log("✅ Indexes created successfully.");
 }
+
 
 // ✅ Call createIndexes AFTER DB connection
 createIndexes().catch(console.error);
@@ -67,4 +92,7 @@ createPlansAndGetID().catch(console.error);
 setupAdminJS(app);
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running at http://localhost:${PORT}/`));
+app.listen(5000, '0.0.0.0', () => {
+    console.log('Server running on port 5000 (IPv4)');
+});
+
