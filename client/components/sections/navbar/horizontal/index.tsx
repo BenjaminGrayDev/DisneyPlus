@@ -24,6 +24,11 @@ const list = [
     href: "/profile",
     Icon: UserIcon,
   },
+  {
+    id: 4,
+    href: "/quota",
+    Icon: UserIcon,
+  },
 ];
 
 const Horizontal = () => {

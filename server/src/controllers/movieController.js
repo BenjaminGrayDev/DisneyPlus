@@ -78,9 +78,6 @@ const fetchMovieDetails = async (movieId) => {
     }
 };
 
-
-
-
 /**
  * Save movie data into MongoDB.
  */

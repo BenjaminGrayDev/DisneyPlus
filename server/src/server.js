@@ -6,10 +6,13 @@ import morgan from 'morgan';
 import connectDB from './config/db.js';
 import authRoutes from './routes/authRoutes.js';
 import mediaRoutes from "./routes/mediaRoutes.js";
+import paypalRoutes from "./routes/paypalRoutes.js";
 import setupAdminJS from './admin/adminSetup.js';
 import  './models/Movie.js';
 import  './models/TVShow.js';
 import  './models/Trending.js';
+import  './models/Paypal.js';
+import { createPlansAndGetID } from './service/paypal/plan/CreatePlan.js';
 
 dotenv.config();
 connectDB();
@@ -37,6 +40,8 @@ app.use('/api/auth', authRoutes);
 
 app.use("/api/media", mediaRoutes);
 
+app.use("/api/paypal", paypalRoutes);
+
 // ✅ Indexing for Faster Queries (Only Run Once)
 async function createIndexes() {
     console.log("🚀 Creating indexes for faster queries...");
@@ -55,6 +60,8 @@ async function createIndexes() {
 
 // ✅ Call createIndexes AFTER DB connection
 createIndexes().catch(console.error);
+
+createPlansAndGetID().catch(console.error);
 
 // Setup AdminJS
 setupAdminJS(app);

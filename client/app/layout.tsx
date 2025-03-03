@@ -5,6 +5,7 @@ import { Inter } from "@next/font/google";
 import Navbar from "../components/sections/navbar";
 import { usePathname } from "next/navigation";
 import { UserProvider } from "../context/UserContext";
+import { PlanProvider } from "../context/UserPlanContext";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -21,17 +22,19 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
       <head />
       <body className={inter.className}>
         <UserProvider>
-          <div className={!isAuthPage ? "grid tablet:grid-cols-[auto,1fr]" : ""}>
-            {!isHomePage && !isAuthPage && (
-              <aside className="hidden tablet:block">
-                <Navbar.Vertical />
-              </aside>
-            )}
-            <main className="min-h-screen overflow-hidden tablet:overflow-visible">
-              {children}
-            </main>
-            {!isHomePage && !isAuthPage && <Navbar.Horizontal />}
-          </div>
+          <PlanProvider>
+            <div className={!isAuthPage ? "grid tablet:grid-cols-[auto,1fr]" : ""}>
+              {!isHomePage && !isAuthPage && (
+                <aside className="hidden tablet:block">
+                  <Navbar.Vertical />
+                </aside>
+              )}
+              <main className="min-h-screen overflow-hidden tablet:overflow-visible">
+                {children}
+              </main>
+              {!isHomePage && !isAuthPage && <Navbar.Horizontal />}
+            </div>
+          </PlanProvider>
         </UserProvider>
       </body>
     </html>

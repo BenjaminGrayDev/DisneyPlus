@@ -52,6 +52,12 @@ const list = [
     Icon: SparklesIcon,
     to: "Originals",
   },
+  {
+    id: 6,
+    href: "/quota",
+    Icon: SparklesIcon,
+    to: "Quota",
+  },
 ];
 
 const Vertical = () => {
