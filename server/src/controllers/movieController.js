@@ -101,7 +101,7 @@ const saveMovie = async (movieData) => {
  */
 const fetchTrendingMovies = async () => {
     await connectDB();
-    
+
     console.log("🔄 Fetching trending movies...");
 
     try {

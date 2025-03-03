@@ -125,10 +125,15 @@ router.get("/trending/:type", async (req, res) => {
         const { type } = req.params;
         console.log(`🔍 Fetching trending for type: ${type}`);
 
+        // Validate type
+        if (!["movies", "series"].includes(type)) {
+            return res.status(400).json({ error: "Invalid type parameter" });
+        }
+
         // Find trending entry in the database
         const trending = await Trending.findOne({ media_type: type, time_window: "day" });
 
-        if (!trending) {
+        if (!trending || !trending.results || trending.results.length === 0) {
             console.log("⚠ No trending media found in DB.");
             return res.status(404).json({ error: "No trending media found" });
         }
@@ -142,49 +147,19 @@ router.get("/trending/:type", async (req, res) => {
             })
         );
 
+        // ✅ Ensure valid media entries (remove null values)
         const filteredResults = results.filter(Boolean);
+
         console.log(`✅ Returning ${filteredResults.length} trending items`);
 
-        res.json(filteredResults);
-    } catch (error) {
-        console.error("🚨 ERROR in /trending/:type:", error);
-        res.status(500).json({ error: "Internal Server Error", details: error.message });
-    }
-});
-
-
-// 🏆 Get Grouped Media (Popular, Top-Rated)
-router.get("/group/:type/:group", async (req, res) => {
-    try {
-        const { type, group } = req.params;
-
-        const groupMapping = {
-            "popular": { popularity: -1 },
-            "top-rated": { vote_average: -1 },
-            "now-playing": { release_date: -1 },
-            "upcoming": { release_date: 1 },
-            "airing-today": { first_air_date: -1 },
-        };
-
-        if (!groupMapping[group]) {
-            return res.status(400).json({ error: "Invalid group type" });
-        }
-
-        const Model = type === "movies" ? Movie : TVShow;
-        const results = await Model.find().sort(groupMapping[group]).limit(20);
-
-        if (!results || results.length === 0) {
-            return res.status(404).json({ error: "No media found in this group" });
-        }
-
-        // ✅ Format response exactly like TMDB API results
-        const formattedResults = results
+        // ✅ Format response exactly like frontend API
+        const formattedResults = filteredResults
             .filter(media => media.poster_path && media.backdrop_path && media.overview) // Ensure valid media
             .map(media => ({
                 id: media.id,
                 title: media.title || media.name,
                 isForAdult: media.adult || false,
-                type: type === "movies" ? "movies" : "series",
+                type: media.media_type === "movie" ? "movies" : "series",
                 image: {
                     poster: media.poster_path || "",
                     backdrop: media.backdrop_path || "",
@@ -196,10 +171,67 @@ router.get("/group/:type/:group", async (req, res) => {
 
         res.json(formattedResults);
     } catch (error) {
+        console.error("🚨 ERROR in /trending/:type:", error);
+        res.status(500).json({ error: "Internal Server Error", details: error.message });
+    }
+});
+
+
+
+// 🏆 Get Grouped Media (Popular, Top-Rated)
+router.get("/group/:type/:group", async (req, res) => {
+    try {
+        const { type, group } = req.params;
+        const page = parseInt(req.query.page) || 1;
+
+        console.log(`🔍 Fetching Group Media: media_type=${type}, Group=${group}, Page=${page}`);
+
+        const groupMapping = {
+            "popular": { popularity: -1 },
+            "top-rated": { vote_average: -1 },
+            "now-playing": { first_air_date: -1 },
+            "upcoming": { first_air_date: 1 },
+            "airing-today": { first_air_date: -1 },
+        };
+
+        if (!groupMapping[group]) {
+            return res.status(400).json({ error: "Invalid group type" });
+        }
+
+        const Model = type === "movies" ? Movie : TVShow;
+
+        const results = await Model.find() // ✅ Only fetch correct type
+            .sort(groupMapping[group])
+            .skip((page - 1) * 20)
+            .limit(20);
+
+        if (!results || results.length === 0) {
+            return res.status(404).json({ error: "No media found in this group" });
+        }
+
+        const formattedResults = results
+            .filter(media => media.poster_path && media.backdrop_path && media.overview) // ✅ Only include valid media
+            .map(media => ({
+                id: media.id,
+                title: media.name || "Unknown Title",
+                isForAdult: media.adult || false,
+                type: media.media_type, // ✅ Use `media_type` instead of `type`
+                image: {
+                    poster: media.poster_path || "",
+                    backdrop: media.backdrop_path || "",
+                },
+                overview: media.overview || "No overview available.",
+                releasedAt: media.first_air_date || "Unknown",
+                language: { original: media.original_language || "Unknown" },
+            }));
+
+        res.json(formattedResults);
+    } catch (error) {
         console.error("🚨 ERROR in /group/:type/:group:", error);
         res.status(500).json({ error: "Internal Server Error", details: error.message });
     }
 });
+
 
 
 // 🔵 Get Movie or TV Show Details
@@ -246,9 +278,52 @@ router.get("/:type/:id/images", async (req, res) => {
     }
 });
 
+router.get("/:type/:id/similar", async (req, res) => {
+    try {
+        const { type, id } = req.params;
+        const page = parseInt(req.query.page) || 1;
+        const limit = 10;
+        const skip = (page - 1) * limit;
 
+        const Model = type === "movies" ? Movie : TVShow;
 
+        // 🔍 Find the target media
+        const media = await Model.findOne({ id });
+        if (!media) return res.status(404).json({ error: "Media not found" });
 
+        // 🎯 Find similar media based on stored `similar_movies` or `similar_shows`
+        const similarMedia = await Model.find({ id: { $in: media.similar_movies || media.similar_shows || [] } })
+            .skip(skip)
+            .limit(limit);
 
+        if (!similarMedia.length) {
+            return res.status(404).json({ error: "No similar media found" });
+        }
+
+        // ✅ Format the response to match TMDB API structure
+        const formattedResults = similarMedia.map(media => ({
+            id: media.id,
+            title: media.title || media.name,
+            isForAdult: media.adult || false,
+            type: type === "movies" ? "movies" : "series",
+            image: {
+                poster: media.poster_path || "",
+                backdrop: media.backdrop_path || "",
+            },
+            overview: media.overview || "No overview available.",
+            releasedAt: media.release_date || media.first_air_date || "Unknown",
+            language: { original: media.original_language || "Unknown" },
+        }));
+
+        res.json({
+            page,
+            total_results: similarMedia.length,
+            results: formattedResults
+        });
+    } catch (error) {
+        console.error("🚨 ERROR in /:type/:id/similar:", error);
+        res.status(500).json({ error: "Internal Server Error", details: error.message });
+    }
+});
 
 export default router;

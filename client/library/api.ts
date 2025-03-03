@@ -9,6 +9,19 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/a
 const TMDB_API_KEY = process.env.TMDB_API_KEY!;
 const TMDB_API_URL = process.env.TMDB_API_URL!;
 
+type Group =
+  | {
+      name: "popular" | "top-rated" | "now-playing" | "upcoming";
+      type: "movies";
+      page: number;
+    }
+  | {
+      name: "popular" | "top-rated" | "on-the-air" | "airing-today";
+      type: "series";
+      page: number;
+    };
+
+type Time = "day" | "week";
 type Type = "movies" | "series" | "all" | string;
 
 async function fetchAPI(url: string) {
@@ -16,12 +29,12 @@ async function fetchAPI(url: string) {
     console.log(`Fetching: ${url}`);
     const response = await fetch(url, { next: { revalidate: 3600 } });
     const data = await response.json();
-    
+
     if (!data || data.status_code) {
       console.error(`API Error: ${data?.status_message || "Unknown error"}`);
       return null;
     }
-    
+
     return data;
   } catch (error) {
     console.error(`Fetch error for ${url}:`, error);
@@ -61,7 +74,7 @@ const api = {
             })) as Media[];
     }),
 
-      group: cache(async ({ name, type, page = 1 }: { name: string; type: "movies" | "series"; page: number }) => {
+      group: cache(async ({ name, type, page = 1 }: Group) => {
         const url = `${API_BASE_URL}/media/group/${type}/${name}?page=${page}`;
 
         console.log(`🔍 Fetching Group Media: ${url}`);
@@ -88,27 +101,54 @@ const api = {
         );
       }),
 
-      trending: cache(async ({ type }: { type: Type }) => {
-        const url = `${TMDB_API_URL}/3/trending/${type === "movies" ? "movie" : "tv"}/day?api_key=${TMDB_API_KEY}`;
+      trending: cache(async ({ type }: { type: "movies" | "series" }) => {
+        const url = `${API_BASE_URL}/media/trending/${type}`;
         const data = await fetchAPI(url);
-        if (!data || !Array.isArray(data.results)) return [];
+
+        if (!data || !Array.isArray(data)) return [];
 
         return shuffleMedias(
-          data.results.map((media: any) => ({
+          data.map((media: any) => ({
             id: media.id,
             title: media.title || media.name,
-            isForAdult: media.adult,
-            type: type === "movies" ? "movies" : "series",
+            isForAdult: media.isForAdult || false,
+            type: media.type,
             image: {
-              poster: media.poster_path,
-              backdrop: media.backdrop_path,
+              poster: media.image.poster || "",
+              backdrop: media.image.backdrop || "",
             },
-            overview: media.overview,
-            releasedAt: media.release_date || media.first_air_date,
-            language: { original: media.original_language },
+            overview: media.overview || "No overview available.",
+            releasedAt: media.releasedAt || "Unknown",
+            language: { original: media.language.original || "Unknown" },
           }))
         ) as Media[];
       }),
+
+      similar: cache(async ({ type, id, page = 1 }: { type: "movies" | "series"; id: string; page?: number }) => {
+        const url = `${API_BASE_URL}/media/${type}/${id}/similar?page=${page}`;
+
+        console.log(`🔍 Fetching Similar Media: ${url}`);
+        const data = await fetchAPI(url);
+
+        if (!data || !Array.isArray(data)) return [];
+
+        return data
+          .filter((media: any) => media.poster_path && media.backdrop_path && media.overview)
+          .map((media: any) => ({
+            id: media.id,
+            title: media.title || media.name,
+            isForAdult: media.adult || false,
+            type: type === "movies" ? "movies" : "series",
+            image: {
+              poster: media.poster_path || "",
+              backdrop: media.backdrop_path || "",
+            },
+            overview: media.overview || "No overview available.",
+            releasedAt: media.release_date || media.first_air_date || "Unknown",
+            language: { original: media.original_language || "Unknown" },
+          })) as Media[];
+      }),
+
     },
 
     media: {
@@ -175,12 +215,12 @@ const api = {
 
       spotlight: cache(async ({ type }: { type: "movies" | "series" | "all" }) => {
         const url = `${API_BASE_URL}/media/spotlight/${type}`;
-    
+
         console.log(`🔍 Fetching Spotlight: ${url}`);
-        
+
         try {
             const data = await fetchAPI(url);
-    
+
             // ✅ Handle null response gracefully
             if (!data) {
                 console.warn("⚠ API: Spotlight returned null.");

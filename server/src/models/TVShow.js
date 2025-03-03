@@ -77,49 +77,52 @@ const seasonSchema = new mongoose.Schema({
 
 // **✅ Updated TV Show Schema**
 const tvShowSchema = new mongoose.Schema({
-    id: { type: Number, unique: true, required: true }, // TMDB ID
-    name: String, // TV Show Title
+    id: { type: Number, unique: true, required: true },
+    name: String,
     original_name: String,
     overview: String,
-    tagline: String, // ✅ New: Show tagline
+    tagline: String,
     first_air_date: String,
     last_air_date: String,
     number_of_seasons: Number,
     number_of_episodes: Number,
-    status: String, // ✅ New: (Returning Series, Ended, etc.)
-    type: String, // ✅ New: (Documentary, Scripted, Reality, etc.)
-    homepage: String, // ✅ New: Official homepage URL
-    in_production: Boolean, // ✅ New: Whether it's still being produced
-    episode_run_time: [Number], // ✅ New: Array of runtimes for episodes
-    original_language: String, // ✅ New: Original language
-    origin_country: [String], // ✅ New: Country codes where the show was made
-    adult: Boolean, // ✅ New: Indicates if the show is for adults (18+)
-    languages: [String], // ✅ New: List of available languages for the show
-    genres: [{ id: Number, name: String }],
-    poster_path: String,
-    backdrop_path: String,
-    media_type: { type: String, enum: ["tv"] },
-    popularity: Number,
-    vote_average: Number,
-    vote_count: Number,
-    similar_shows: [{ type: Number }], // Array of TV show IDs
-    created_by: [creatorSchema], // ✅ New: List of show creators
-    networks: [networkSchema], // ✅ New: List of TV networks airing the show
-    production_companies: [productionCompanySchema], // ✅ New: List of production companies
-    production_countries: [productionCountrySchema], // ✅ New: List of production countries
-    spoken_languages: [spokenLanguageSchema], // ✅ New: List of spoken languages
-    seasons: [seasonSchema], // ✅ Updated: Array of seasons with correct fields
-    last_episode_to_air: episodeAirSchema, // ✅ New: Last aired episode
-    next_episode_to_air: episodeAirSchema, // ✅ New: Next scheduled episode
-    videos: [videoSchema], // Videos (trailers, teasers, clips)
+    status: String,
+    type: String,
+    homepage: String,
+    in_production: Boolean,
+    episode_run_time: [Number],
+    original_language: String,
+    origin_country: [String],
+    adult: Boolean,
+    languages: [String],
+    created_by: [creatorSchema],
+    networks: [networkSchema],
+    production_companies: [productionCompanySchema],
+    production_countries: [productionCountrySchema],
+    spoken_languages: [spokenLanguageSchema],
+    seasons: [seasonSchema],
+    last_episode_to_air: episodeAirSchema,
+    next_episode_to_air: episodeAirSchema,
+    videos: [videoSchema],
     images: {
         backdrops: [imageSchema],
         posters: [imageSchema],
         logos: [imageSchema],
     },
+
+    // ✅ Fix Missing Fields
+    poster_path: { type: String, default: "" },
+    backdrop_path: { type: String, default: "" },
+    media_type: { type: String, enum: ["tv"], required: true }, // ✅ Ensure correct media type
+    popularity: { type: Number, default: 0 }, // ✅ Prevent null issues
+    vote_average: { type: Number, default: 0 },
+    vote_count: { type: Number, default: 0 },
+    similar_shows: [{ type: Number }], // ✅ Store array of similar show IDs
+
     created_at: { type: Date, default: Date.now },
     updated_at: { type: Date, default: Date.now },
 });
+
 
 // Export TV Show Model
 export default mongoose.model("TVShow", tvShowSchema);

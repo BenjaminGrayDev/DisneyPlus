@@ -47,14 +47,21 @@ const fetchTVShowDetails = async (tvId) => {
             next_episode_to_air: data.next_episode_to_air || null,
             videos: data.videos?.results || [],
             images: data.images || {},
+
+            // ✅ Fix Missing Fields
+            poster_path: data.poster_path || "",
+            backdrop_path: data.backdrop_path || "",
+            media_type: "tv",  // ✅ Explicitly set media type
+            popularity: data.popularity || 0,  // ✅ Avoid null values
+            vote_average: data.vote_average || 0,  // ✅ Avoid null values
+            vote_count: data.vote_count || 0,  // ✅ Avoid null values
+            similar_shows: data.similar?.results?.map(show => show.id) || [], // ✅ Store similar show IDs
         };
     } catch (error) {
-        console.error(`Error fetching TV Show ${tvId}:`, error.message);
+        console.error(`❌ Error fetching TV Show ${tvId}:`, error.message);
         return null;
     }
 };
-
-
 
 const saveTVShow = async (tvShowData) => {
     try {

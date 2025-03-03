@@ -31,7 +31,7 @@ export function useAuth() {
             }
         } else {
             // ✅ Exclude public pages from redirection
-            const publicPaths = ["/", "/auth/signup", "/auth/signin", "/privacy-policy", "/terms-of-service", "/dashboard"];
+            const publicPaths = ["/", "/auth/signup", "/auth/signin", "/privacy-policy", "/terms-of-service", "/dashboard", "/series", "/movies"];
 
             if (pathname && !publicPaths.includes(pathname) && isHydrated) {
                 console.warn("Redirecting to signin...");
