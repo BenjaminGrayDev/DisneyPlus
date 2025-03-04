@@ -4,13 +4,14 @@ const CustomLogin = () => {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError(""); // Clear previous errors
+        setError(""); 
+        setLoading(true);
 
         try {
-            // Send login request to AdminJS authentication API
             const response = await fetch("/admin/login", {
                 method: "POST",
                 headers: {
@@ -20,7 +21,6 @@ const CustomLogin = () => {
             });
 
             if (response.ok) {
-                // Redirect to AdminJS dashboard after successful login
                 window.location.href = "/admin";
             } else {
                 const data = await response.json();
@@ -28,38 +28,119 @@ const CustomLogin = () => {
             }
         } catch (err) {
             setError("Login failed. Please try again.");
+        } finally {
+            setLoading(false);
         }
     };
 
     return (
-        <div style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
-            <form onSubmit={handleSubmit} style={{ width: "300px", padding: "20px", boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.1)" }}>
-                <h2>Login</h2>
+        <div style={styles.container}>
+            <div style={styles.loginBox}>
+                <h2 style={styles.title}>
+                    <span role="img" aria-label="lock">🔒</span>Disney Plus Admin Login
+                </h2>
 
-                {error && <p style={{ color: "red" }}>{error}</p>}
+                {error && <p style={styles.errorMessage}>{error}</p>}
 
-                <input
-                    type="email"
-                    placeholder="Email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
-                />
-                <input
-                    type="password"
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    style={{ width: "100%", marginBottom: "10px", padding: "8px" }}
-                />
-                <button type="submit" style={{ width: "100%", padding: "10px", background: "blue", color: "#fff" }}>
-                    Login
-                </button>
-            </form>
+                <form onSubmit={handleSubmit} style={styles.form}>
+                    <input
+                        type="email"
+                        placeholder="Email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        style={styles.input}
+                    />
+                    <input
+                        type="password"
+                        placeholder="Password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        style={styles.input}
+                    />
+                    <button
+                        type="submit"
+                        style={{ ...styles.button, ...(loading ? styles.disabledButton : {}) }}
+                        disabled={loading}
+                    >
+                        {loading ? "Logging in..." : "Login"}
+                    </button>
+                </form>
+            </div>
         </div>
     );
+};
+
+const styles = {
+    container: {
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        background: "linear-gradient(to top, #0c3483 0%, #a2b6df 100%, #6b8cce 100%, #a2b6df 100%)",
+    },
+    loginBox: {
+        background: "rgba(255, 255, 255, 0.2)",
+        backdropFilter: "blur(15px)",
+        padding: "30px",
+        borderRadius: "12px",
+        boxShadow: "0 4px 15px rgba(0, 0, 0, 0.2)",
+        textAlign: "center",
+        width: "380px", // ✅ Wider container for better spacing
+        border: "1px solid rgba(255, 255, 255, 0.3)",
+        color: "white",
+        transition: "all 0.3s ease-in-out",
+    },
+    title: {
+        marginBottom: "20px",
+        fontSize: "22px",
+        fontWeight: "bold",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "5px",
+    },
+    form: {
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center", // ✅ Center everything
+    },
+    input: {
+        width: "100%", // ✅ Ensures full width inside form
+        maxWidth: "320px", // ✅ Makes sure it doesn't exceed container width
+        padding: "12px",
+        marginBottom: "12px",
+        borderRadius: "8px",
+        border: "1px solid rgba(255, 255, 255, 0.3)",
+        background: "rgba(255, 255, 255, 0.2)",
+        color: "white",
+        fontSize: "16px",
+        outline: "none",
+        transition: "all 0.3s ease-in-out",
+    },
+    button: {
+        width: "100%", // ✅ Matches input width
+        maxWidth: "350px", // ✅ Same as inputs
+        padding: "12px",
+        border: "none",
+        borderRadius: "8px",
+        fontSize: "16px",
+        fontWeight: "bold",
+        cursor: "pointer",
+        background: "linear-gradient(to right, #ff7b00, #ff5c00)",
+        color: "white",
+        transition: "transform 0.2s, background 0.3s",
+    },
+    disabledButton: {
+        background: "#666",
+        cursor: "not-allowed",
+    },
+    errorMessage: {
+        color: "#ff4444",
+        fontSize: "14px",
+        marginBottom: "12px",
+    },
 };
 
 export default CustomLogin;

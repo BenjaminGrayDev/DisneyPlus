@@ -35,13 +35,30 @@ componentLoader.override('Login', path.resolve(__dirname, 'custom-login-componen
 const adminOptions = {
     branding: {
         logo: false,
-        companyName: ' ',
+        companyName: 'Disney Plus',
+        softwareBrothers: false,
     },
-    dashboard: Components.Dashboard,
+    assets: {
+        styles: [
+            `
+            /* Forcefully hide the footer branding in AdminJS 7.8.15 */
+            .adminjs_LoggedIn { display: none !important; } /* ✅ Hides branding in sidebar */
+            .adminjs_MadeWithLove { display: none !important; } /* ✅ Hides "Made with ❤️" */
+            .sidebar-footer { display: none !important; } /* ✅ Hides the entire sidebar footer */
+            .sb-footer { display: none !important; } /* ✅ Ensures no other footer remains */
+            .adminjs_PageFooter { display: none !important; } /* ✅ Removes footer in the main layout */
+            .adminjs_Box[data-css="footer"] { display: none !important; } /* ✅ Targets AdminJS 7+ footer */
+            `,
+        ],
+    },
     componentLoader
 };
 
 adminOptions.dashboard = { component: Components.Dashboard };
+
+
+console.log("📌 AdminJS Branding Settings:", adminOptions.branding);
+
 
 const waitForDBConnection = async () => {
     return new Promise((resolve, reject) => {
