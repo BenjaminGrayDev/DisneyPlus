@@ -88,33 +88,6 @@ const waitForDBConnection = async () => {
     });
 };
 
-const loadAllCollections = async () => {
-    try {
-        // Ensure MongoDB is fully connected before proceeding
-        await waitForDBConnection();
-
-        // Fetch all collections from MongoDB
-        const db = mongoose.connection.db;
-        if (!db) throw new Error("MongoDB connection is not ready.");
-
-        const collections = await db.listCollections().toArray();
-
-        // Loop through collections and create models if they don't exist
-        collections.forEach((collection) => {
-            const collectionName = collection.name;
-
-            if (!mongoose.models[collectionName]) {
-                const schema = new mongoose.Schema({}, { strict: false, collection: collectionName });
-                mongoose.model(collectionName, schema);
-            }
-        });
-
-        console.log("✅ All collections have been dynamically registered as Mongoose models.");
-    } catch (error) {
-        console.error("❌ Error loading collections:", error);
-    }
-};
-
 const setupAdminJS = async (app) => {
     try {
         AdminJS.registerAdapter(AdminJSMongoose);
@@ -126,7 +99,7 @@ const setupAdminJS = async (app) => {
         }
 
         // ✅ Load all collections dynamically
-        await loadAllCollections();
+        await waitForDBConnection();
 
         // ✅ Fetch all models after loading collections
         const allResources = Object.keys(mongoose.models).map((modelName) => ({
