@@ -27,6 +27,10 @@ app.use(
         crossOriginEmbedderPolicy: false,
     })
 );
+
+// Setup AdminJS
+await setupAdminJS(app);
+
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.static('public'));
@@ -88,8 +92,7 @@ createIndexes().catch(console.error);
 
 createPlansAndGetID().catch(console.error);
 
-// Setup AdminJS
-setupAdminJS(app);
+
 
 const PORT = process.env.PORT || 5000;
 app.listen(5000, '0.0.0.0', () => {

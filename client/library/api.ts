@@ -97,7 +97,7 @@ const api = {
         );
       }),
 
-      trending: cache(async ({ type }: { type: "movies" | "series" }) => {
+      trending: cache(async ({ type }: { type: "movies" | "series"; time: "day" | "week" }) => {
         const url = `${API_BASE_URL}/media/trending/${type}`;
         const data = await fetchAPI(url);
 

@@ -14,6 +14,7 @@ export type Media = {
   language?: {
     original?: string;
   };
+  time?: "day" | "week";
 };
 
 export type Logo = {

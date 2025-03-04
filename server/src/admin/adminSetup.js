@@ -7,26 +7,41 @@ import bcrypt from 'bcryptjs';
 import dotenv from 'dotenv';
 import { ComponentLoader } from 'adminjs';
 import path from 'path';
+import { useTranslation } from 'adminjs'
+
+
 
 import { fileURLToPath } from 'url';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const componentLoader = new ComponentLoader(); // Initialize component loader
 
+const dashboardPath = path.resolve(__dirname, "custom-dashboard.jsx");
+console.log("📌 Dashboard Path:", dashboardPath);
 
-dotenv.config();
+const Components = {
+    Dashboard: componentLoader.add("Dashboard", dashboardPath),
+};
+
+// ✅ Log component registration
+console.log("✅ Custom Dashboard Registered in AdminJS:", Components.Dashboard);
+
+componentLoader.override('Login', path.resolve(__dirname, 'custom-login-component.jsx'));
 
 const adminOptions = {
     branding: {
         logo: false,
         companyName: ' ',
     },
-    loginPage: {
-        component: componentLoader.add('CustomLogin', path.join(__dirname, 'custom-login-component')),
-    },
+    dashboard: Components.Dashboard,
+    componentLoader
 };
+
+adminOptions.dashboard = { component: Components.Dashboard };
 
 const waitForDBConnection = async () => {
     return new Promise((resolve, reject) => {
@@ -56,7 +71,7 @@ const loadAllCollections = async () => {
         // Fetch all collections from MongoDB
         const db = mongoose.connection.db;
         if (!db) throw new Error("MongoDB connection is not ready.");
-        
+
         const collections = await db.listCollections().toArray();
 
         // Loop through collections and create models if they don't exist
@@ -97,9 +112,6 @@ const setupAdminJS = async (app) => {
         const adminJs = new AdminJS({
             resources: allResources, // ✅ Load all models dynamically
             rootPath: '/admin',
-            branding: {
-                companyName: 'My Admin Panel',
-            },
             ...adminOptions, // Use predefined options
         });
 
