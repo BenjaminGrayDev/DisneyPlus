@@ -36,18 +36,17 @@ const adminOptions = {
     branding: {
         logo: false,
         companyName: 'Disney Plus',
-        softwareBrothers: false,
+        withMadeWithLove: false,
+        container: false, // ✅ Ensures full branding contro
     },
     assets: {
         styles: [
             `
-            /* Forcefully hide the footer branding in AdminJS 7.8.15 */
-            .adminjs_LoggedIn { display: none !important; } /* ✅ Hides branding in sidebar */
-            .adminjs_MadeWithLove { display: none !important; } /* ✅ Hides "Made with ❤️" */
-            .sidebar-footer { display: none !important; } /* ✅ Hides the entire sidebar footer */
-            .sb-footer { display: none !important; } /* ✅ Ensures no other footer remains */
-            .adminjs_PageFooter { display: none !important; } /* ✅ Removes footer in the main layout */
-            .adminjs_Box[data-css="footer"] { display: none !important; } /* ✅ Targets AdminJS 7+ footer */
+            .adminjs_Box[data-css="sidebar-footer"] { display: none !important; }
+            .adminjs_PageFooter { display: none !important; }
+            .adminjs_MadeWithLove { display: none !important; }
+            .adminjs_Text { display: none !important; }
+            .sidebar-footer { display: none !important; }
             `,
         ],
     },
@@ -55,6 +54,15 @@ const adminOptions = {
 };
 
 adminOptions.dashboard = { component: Components.Dashboard };
+adminOptions.branding.withMadeWithLove = false;
+adminOptions.assets.styles.push(`
+    .adminjs_Box[data-css="sidebar-footer"] { display: none !important; }
+    .adminjs_PageFooter { display: none !important; }
+    .adminjs_MadeWithLove { display: none !important; }
+    .adminjs_Text { display: none !important; }
+    .sidebar-footer { display: none !important; }
+    `);
+
 
 
 console.log("📌 AdminJS Branding Settings:", adminOptions.branding);
